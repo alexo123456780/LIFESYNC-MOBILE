@@ -1,4 +1,4 @@
-import { HttpError, NetworkError } from '../../application/errors';
+import { HttpError, NetworkError, type RequestOptions } from '../../application/errors';
 
 export { HttpError, NetworkError };
 
@@ -10,16 +10,27 @@ export class HttpClient {
     return this.request<T>('GET', path);
   }
 
-  post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>('POST', path, body);
+  post<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    return this.request<T>('POST', path, body, options);
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    options?: RequestOptions,
+  ): Promise<T> {
     let response: Response;
     try {
       response = await fetch(`${this.baseUrl}${path}`, {
         method,
-        headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+        headers:
+          body === undefined && !options?.headers
+            ? undefined
+            : {
+                ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+                ...options?.headers,
+              },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     } catch (cause) {

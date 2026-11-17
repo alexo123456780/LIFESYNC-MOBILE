@@ -37,6 +37,23 @@ describe('HttpClient', () => {
     );
   });
 
+  it('POST envía las cabeceras adicionales (por ejemplo Authorization) junto con el JSON', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await client.post(
+      '/auth/logout',
+      { refresh_token: 'r' },
+      { headers: { Authorization: 'Bearer t' } },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/api/v1/auth/logout',
+      expect.objectContaining({
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer t' },
+      }),
+    );
+  });
+
   it('un estado no exitoso lanza HttpError con el estado y el cuerpo', async () => {
     fetchMock.mockResolvedValue(jsonResponse(409, { message: 'Correo registrado' }));
 
