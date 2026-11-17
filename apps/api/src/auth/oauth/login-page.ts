@@ -1,14 +1,6 @@
+import escapeHtml from 'escape-html';
 import type { AuthorizeParams } from './authorize-request.js';
 import { OAUTH_CLIENT_ID } from './authorize-request.js';
-
-export function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
 
 /** CSP restrictiva: el formulario solo puede enviarse al servidor y redirigir a los esquemas registrados. */
 export function buildCsp(nonce: string, redirectUris: readonly string[]): string {

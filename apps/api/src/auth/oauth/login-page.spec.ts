@@ -1,4 +1,5 @@
-import { buildCsp, escapeHtml, renderLoginPage } from './login-page.js';
+import escapeHtml from 'escape-html';
+import { buildCsp, renderLoginPage } from './login-page.js';
 
 const params = {
   redirectUri: 'lifesync://oauth/callback',
