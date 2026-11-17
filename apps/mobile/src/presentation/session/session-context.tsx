@@ -1,34 +1,72 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { ApiPort } from '@/application/errors';
+import { restoreSession } from '@/application/restore-session';
+import { type SignOutResult, signOut as signOutUseCase } from '@/application/sign-out';
+import type { TokenStorage } from '@/application/token-storage';
 import type { SessionStatus, SessionTokens } from '@/domain/session';
 
 interface SessionContextValue {
   status: SessionStatus;
-  /** Tokens de la sesión activa; LM-45 los guarda en SecureStore. */
   tokens: SessionTokens | null;
-  signIn: (tokens: SessionTokens) => void;
-  signOut: () => void;
+  /** Guarda los tokens en el almacén seguro y abre la sesión. */
+  signIn: (tokens: SessionTokens) => Promise<void>;
+  /** Revoca el refresh token, borra SecureStore y la caché, y cierra la sesión aunque no haya red. */
+  signOut: () => Promise<SignOutResult>;
+}
+
+interface SessionProviderProps {
+  storage: TokenStorage;
+  api: ApiPort;
+  clearCache: () => Promise<void>;
+  children: ReactNode;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-// Esqueleto: LM-45 y LM-48 conectan este estado con SecureStore y la restauración de sesión.
-export function SessionProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<SessionStatus>('unauthenticated');
+export function SessionProvider({ storage, api, clearCache, children }: SessionProviderProps) {
+  const [status, setStatus] = useState<SessionStatus>('loading');
   const [tokens, setTokens] = useState<SessionTokens | null>(null);
+
+  // Al abrir la app se restaura la sesión guardada; sin tokens se abre la pila (auth).
+  useEffect(() => {
+    let active = true;
+    void restoreSession(storage).then((restored) => {
+      if (!active) return;
+      setTokens(restored);
+      setStatus(restored ? 'authenticated' : 'unauthenticated');
+    });
+    return () => {
+      active = false;
+    };
+  }, [storage]);
+
+  const signIn = useCallback(
+    async (next: SessionTokens) => {
+      await storage.save(next);
+      setTokens(next);
+      setStatus('authenticated');
+    },
+    [storage],
+  );
+
+  const signOut = useCallback(async () => {
+    const result = await signOutUseCase({ api, storage, clearCache }, tokens);
+    setTokens(null);
+    setStatus('unauthenticated');
+    return result;
+  }, [api, clearCache, storage, tokens]);
+
   const value = useMemo<SessionContextValue>(
-    () => ({
-      status,
-      tokens,
-      signIn: (next) => {
-        setTokens(next);
-        setStatus('authenticated');
-      },
-      signOut: () => {
-        setTokens(null);
-        setStatus('unauthenticated');
-      },
-    }),
-    [status, tokens],
+    () => ({ status, tokens, signIn, signOut }),
+    [status, tokens, signIn, signOut],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

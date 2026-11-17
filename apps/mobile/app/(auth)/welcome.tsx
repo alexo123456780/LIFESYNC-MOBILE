@@ -44,8 +44,19 @@ export default function Welcome() {
         { checkServer: () => api.get('/healthz'), openBrowser: signInWithBrowser },
         setPhase,
       );
-      if (result.status === 'signed_in') session.signIn(result.tokens);
-      else setFeedback(FEEDBACK[result.status]);
+      if (result.status === 'signed_in') {
+        try {
+          await session.signIn(result.tokens);
+        } catch {
+          setFeedback({
+            tone: 'error',
+            message:
+              'No pudimos guardar tu sesión de forma segura en este teléfono. Inténtalo de nuevo.',
+          });
+        }
+      } else {
+        setFeedback(FEEDBACK[result.status]);
+      }
     } finally {
       setPhase(null);
     }

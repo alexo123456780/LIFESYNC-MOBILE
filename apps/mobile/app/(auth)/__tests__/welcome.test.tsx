@@ -5,7 +5,7 @@ import { api } from '@/infrastructure/http/api';
 import { signInWithBrowser } from '@/infrastructure/oauth/oauth-client';
 import Welcome from '../welcome';
 
-const mockSignIn = jest.fn();
+const mockSignIn = jest.fn().mockResolvedValue(undefined);
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn() },
   useLocalSearchParams: jest.fn(() => ({})),
@@ -29,6 +29,7 @@ const press = (name: string) => fireEvent.press(screen.getByRole('button', { nam
 describe('pantalla de bienvenida', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSignIn.mockResolvedValue(undefined);
     get.mockResolvedValue({ status: 'ok' });
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
   });
