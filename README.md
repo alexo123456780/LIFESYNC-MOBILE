@@ -75,7 +75,13 @@ Las rutas de la app viven en `apps/mobile/app/` con dos pilas separadas:
 - `(auth)`: usuario sin sesión (bienvenida, registro).
 - `(app)`: usuario autenticado (historial, ajustes).
 
-Cada `_layout.tsx` consulta el estado de sesión (`loading`, `authenticated` o `unauthenticated`) del `SessionProvider` y usa la función pura `resolveGuardRedirect` (`src/domain/session.ts`) para decidir si redirige. **Pendiente de completar (LM-45 y LM-48):** restaurar la sesión desde `expo-secure-store` al abrir la app, mostrar una pantalla de carga mientras tanto y bloquear el botón «atrás» tras cerrar sesión.
+Cada `_layout.tsx` consulta el estado de sesión (`loading`, `authenticated` o `unauthenticated`) del `SessionProvider` y usa la función pura `resolveGuardRedirect` (`src/domain/session.ts`) para decidir si redirige:
+
+- **`loading`**: al abrir la app se restaura la sesión desde `expo-secure-store` y ambas pilas muestran una pantalla de carga, sin redirigir (así no hay parpadeo entre pilas).
+- **Sin sesión**: cualquier ruta de `(app)` redirige a `/welcome`. **Con sesión**: cualquier ruta de `(auth)` redirige a `/`.
+- **Cerrar sesión** (Ajustes) revoca el refresh token, borra SecureStore y la caché y pasa a `unauthenticated`; la redirección reemplaza la ruta, por lo que «atrás» no regresa a `(app)`.
+
+`app/__tests__/navigation.test.tsx` comprueba estos recorridos con el enrutador real de Expo Router (`expo-router/testing-library`).
 
 La regla de dependencias va hacia adentro: presentación → aplicación → dominio. El dominio no importa nada de Expo, React ni Nest.
 
