@@ -21,7 +21,10 @@ export interface LoginPageOptions {
   error?: string;
 }
 
-/** Página de login del servidor de autorización: HTML mínimo, sin JavaScript. */
+/**
+ * Página de login del servidor de autorización: HTML mínimo, sin JavaScript.
+ * Los colores se mantienen sincronizados con apps/mobile/src/presentation/theme/tokens.ts.
+ */
 export function renderLoginPage({ params, csrfToken, nonce, error }: LoginPageOptions): string {
   const hidden = (name: string, value: string) =>
     `<input type="hidden" name="${name}" value="${escapeHtml(value)}">`;
@@ -32,13 +35,13 @@ export function renderLoginPage({ params, csrfToken, nonce, error }: LoginPageOp
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LifeSync · Iniciar sesión</title>
 <style nonce="${nonce}">
-body{font-family:system-ui,sans-serif;margin:0;padding:24px;background:#f6f8fa;color:#111827}
+body{font-family:system-ui,sans-serif;margin:0;padding:24px;background:#F1F5F9;color:#0F172A}
 main{max-width:420px;margin:0 auto}
 h1{font-size:1.5rem}
 label{display:block;margin-top:16px;font-weight:600}
-input[type=email],input[type=password]{width:100%;box-sizing:border-box;min-height:48px;padding:12px;font-size:1rem;border:1px solid #6b7280;border-radius:8px}
-button{width:100%;min-height:48px;margin-top:24px;font-size:1rem;font-weight:600;color:#fff;background:#1d4ed8;border:0;border-radius:8px}
-.error{margin-top:16px;padding:12px;color:#7f1d1d;background:#fee2e2;border-radius:8px}
+input[type=email],input[type=password]{width:100%;box-sizing:border-box;min-height:48px;padding:12px;font-size:1rem;border:1px solid #64748B;border-radius:8px}
+button{width:100%;min-height:48px;margin-top:24px;font-size:1rem;font-weight:600;color:#fff;background:#1D4ED8;border:0;border-radius:8px}
+.error{margin-top:16px;padding:12px;color:#7F1D1D;background:#FEE2E2;border-radius:8px}
 </style>
 </head>
 <body>
