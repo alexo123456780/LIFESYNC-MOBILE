@@ -1,9 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import argon2 from 'argon2';
 import type { Env } from '../../common/env.validation.js';
 import { PrismaClient } from '../../generated/prisma/client.js';
+import { hashPassword, verifyPassword } from '../password-hasher.js';
 import { type AuthorizeRequestResult, parseAuthorizeRequest } from './authorize-request.js';
 import { OAuthError } from './oauth-error.js';
 import { verifyPkce } from './pkce.js';
@@ -41,11 +41,11 @@ export class OAuthService {
       where: { email: email.trim().toLowerCase() },
     });
     if (!user) {
-      this.dummyHash ??= argon2.hash('relleno', { type: argon2.argon2id });
-      await argon2.verify(await this.dummyHash, password);
+      this.dummyHash ??= hashPassword('relleno');
+      await verifyPassword(await this.dummyHash, password);
       return null;
     }
-    return (await argon2.verify(user.passwordHash, password)) ? user.id : null;
+    return (await verifyPassword(user.passwordHash, password)) ? user.id : null;
   }
 
   /** Crea un código de un solo uso de 60 s; en la base solo queda su hash. */
