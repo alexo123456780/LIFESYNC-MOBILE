@@ -1,6 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import argon2 from 'argon2';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { hashPassword } from '../src/auth/password-hasher.js';
 import { assertSeedAllowed } from './seed-guard.js';
 
 async function main(): Promise<void> {
@@ -11,12 +11,7 @@ async function main(): Promise<void> {
     throw new Error('Define SEED_USER_PASSWORD para crear el usuario de desarrollo');
   }
   const email = process.env.SEED_USER_EMAIL ?? 'demo@lifesync.dev';
-  const passwordHash = await argon2.hash(password, {
-    type: argon2.argon2id,
-    memoryCost: 19456,
-    timeCost: 2,
-    parallelism: 1,
-  });
+  const passwordHash = await hashPassword(password);
 
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
