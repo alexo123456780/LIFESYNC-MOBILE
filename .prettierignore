@@ -3,5 +3,6 @@ dist/
 build/
 coverage/
 .expo/
+generated/
 package-lock.json
 docs/
