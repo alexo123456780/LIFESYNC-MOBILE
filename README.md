@@ -25,7 +25,8 @@ npm ci
 
 # 2. Variables de entorno del API y de Docker
 cp .env.example .env
-#    Edita .env: DB_PASSWORD, PGADMIN_PASSWORD y SEED_USER_PASSWORD son obligatorios.
+#    Edita .env: DB_PASSWORD, PGADMIN_PASSWORD y SEED_USER_PASSWORD son obligatorios, y las llaves
+#    JWT_PRIVATE_KEY_B64 / JWT_PUBLIC_KEY_B64 (el comando para generarlas está en la sección Despliegue).
 #    Si el puerto 5432 está ocupado, cambia DB_PORT. En Linux, ajusta DEV_UID/DEV_GID con `id -u` / `id -g`.
 
 # 3. API + PostgreSQL (aplica las migraciones al arrancar)
