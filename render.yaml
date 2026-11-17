@@ -1,10 +1,11 @@
-# Blueprint de Render. El deploy lo dispara GitHub Actions (deploy hook) con CI en verde en `main`.
+# Blueprint de Render. El deploy lo dispara GitHub Actions (deploy hook) con CI en verde en `prod`.
 services:
   - type: web
     name: lifesync-api
     runtime: docker
     plan: free
     # Sin `target`: Render construye la última etapa del Dockerfile (prod).
+    branch: prod
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
     healthCheckPath: /api/v1/healthz
