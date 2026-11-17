@@ -1,0 +1,8 @@
+# Gitleaks (imagen oficial, ver security.yml). Hereda las reglas por defecto.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Nombres de las variables de llaves JWT en render.yaml y docs (sin valores)"
+regexTarget = "match"
+regexes = ['''key:\s*JWT_(PRIVATE|PUBLIC)_KEY_B64''']
