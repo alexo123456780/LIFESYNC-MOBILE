@@ -7,7 +7,7 @@ const config: ExpoConfig = {
   version: '0.1.0',
   scheme: 'lifesync',
   orientation: 'portrait',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'light',
   android: { package: 'com.lifesync.mobile' },
   ios: { bundleIdentifier: 'com.lifesync.mobile' },
   plugins: ['expo-router'],
