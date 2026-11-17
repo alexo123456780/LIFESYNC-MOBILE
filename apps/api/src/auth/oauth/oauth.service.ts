@@ -7,18 +7,11 @@ import { PrismaClient } from '../../generated/prisma/client.js';
 import { type AuthorizeRequestResult, parseAuthorizeRequest } from './authorize-request.js';
 import { OAuthError } from './oauth-error.js';
 import { verifyPkce } from './pkce.js';
-import { ACCESS_TOKEN_TTL_SECONDS, TokenService, hashToken } from './token.service.js';
+import { type TokenResponse, TokenService, hashToken } from './token.service.js';
 
 export const AUTHORIZATION_CODE_TTL_MS = 60_000;
 const MAX_PASSWORD_LENGTH = 128;
 const MAX_EMAIL_LENGTH = 254;
-
-export interface TokenResponse {
-  access_token: string;
-  token_type: 'Bearer';
-  expires_in: number;
-  refresh_token: string;
-}
 
 @Injectable()
 export class OAuthService {
@@ -105,11 +98,6 @@ export class OAuthService {
       throw invalidGrant();
     }
 
-    return {
-      access_token: await this.tokens.signAccessToken(record.userId),
-      token_type: 'Bearer',
-      expires_in: ACCESS_TOKEN_TTL_SECONDS,
-      refresh_token: await this.tokens.issueRefreshToken(record.userId),
-    };
+    return this.tokens.issueTokenPair(record.userId);
   }
 }

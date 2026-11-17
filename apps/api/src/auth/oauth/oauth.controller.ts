@@ -6,14 +6,19 @@ import type { AuthorizeParams } from './authorize-request.js';
 import { CSRF_COOKIE, csrfMatches, newCsrfToken, readCookie } from './csrf.js';
 import { buildCsp, renderLoginPage } from './login-page.js';
 import { OAuthError } from './oauth-error.js';
-import { OAuthService, type TokenResponse } from './oauth.service.js';
+import { OAuthService } from './oauth.service.js';
+import { RefreshTokenService } from './refresh-token.service.js';
+import type { TokenResponse } from './token.service.js';
 
 /** 5 intentos por minuto por IP en el login y en el canje de tokens (RS-09). */
 const ATTEMPT_LIMIT = { default: { limit: 5, ttl: 60_000 } };
 
 @Controller('oauth')
 export class OAuthController {
-  constructor(private readonly oauth: OAuthService) {}
+  constructor(
+    private readonly oauth: OAuthService,
+    private readonly refreshTokens: RefreshTokenService,
+  ) {}
 
   @Get('authorize')
   authorize(@Query() query: Record<string, unknown>, @Res() res: Response): void {
@@ -60,6 +65,9 @@ export class OAuthController {
   ): Promise<TokenResponse> {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Pragma', 'no-cache');
+    if (body.grant_type === 'refresh_token') {
+      return this.refreshTokens.rotate(body.refresh_token);
+    }
     if (body.grant_type !== 'authorization_code') {
       throw new OAuthError('unsupported_grant_type', 'grant_type no soportado');
     }
