@@ -2,9 +2,9 @@ name: ci
 
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [develop, prod]
   push:
-    branches: [develop, main]
+    branches: [develop, prod]
 
 permissions:
   contents: read
@@ -74,7 +74,7 @@ jobs:
 
   deploy:
     needs: [quality, e2e, security, docker]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
     runs-on: ubuntu-latest
     steps:
       - name: Invocar el deploy hook de Render
