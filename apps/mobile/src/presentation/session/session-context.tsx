@@ -1,9 +1,11 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { SessionStatus } from '@/domain/session';
+import type { SessionStatus, SessionTokens } from '@/domain/session';
 
 interface SessionContextValue {
   status: SessionStatus;
-  signIn: () => void;
+  /** Tokens de la sesión activa; LM-45 los guarda en SecureStore. */
+  tokens: SessionTokens | null;
+  signIn: (tokens: SessionTokens) => void;
   signOut: () => void;
 }
 
@@ -12,13 +14,21 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 // Esqueleto: LM-45 y LM-48 conectan este estado con SecureStore y la restauración de sesión.
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SessionStatus>('unauthenticated');
+  const [tokens, setTokens] = useState<SessionTokens | null>(null);
   const value = useMemo<SessionContextValue>(
     () => ({
       status,
-      signIn: () => setStatus('authenticated'),
-      signOut: () => setStatus('unauthenticated'),
+      tokens,
+      signIn: (next) => {
+        setTokens(next);
+        setStatus('authenticated');
+      },
+      signOut: () => {
+        setTokens(null);
+        setStatus('unauthenticated');
+      },
     }),
-    [status],
+    [status, tokens],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
