@@ -9,6 +9,13 @@ export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const ALG = 'ES256';
 
+export interface TokenResponse {
+  access_token: string;
+  token_type: 'Bearer';
+  expires_in: number;
+  refresh_token: string;
+}
+
 /** En la base solo se guarda este hash: el valor en claro nunca se persiste. */
 export const hashToken = (value: string): string =>
   createHash('sha256').update(value).digest('hex');
@@ -71,5 +78,15 @@ export class TokenService {
       },
     });
     return token;
+  }
+
+  /** Par access + refresh; `familyId` agrupa los refresh tokens que se rotan a partir de un mismo login. */
+  async issueTokenPair(userId: string, familyId?: string): Promise<TokenResponse> {
+    return {
+      access_token: await this.signAccessToken(userId),
+      token_type: 'Bearer',
+      expires_in: ACCESS_TOKEN_TTL_SECONDS,
+      refresh_token: await this.issueRefreshToken(userId, familyId),
+    };
   }
 }
