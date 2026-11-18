@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/coverage
+.git
+.husky
+.env
+.env.*
+!.env.example
+docs
+md
+tools
+apps/api/src/generated
+apps/mobile/*
+!apps/mobile/package.json

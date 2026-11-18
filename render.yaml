@@ -1,0 +1,24 @@
+# Blueprint de Render. El deploy lo dispara GitHub Actions (deploy hook) con CI en verde en `prod`.
+services:
+  - type: web
+    name: lifesync-api
+    runtime: docker
+    plan: free
+    # Sin `target`: Render construye la última etapa del Dockerfile (prod).
+    branch: prod
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/healthz
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Sprint 3: reemplazar por `fromDatabase` (lifesync-db) al crear la BD gratuita, que expira a los 30 días.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_PRIVATE_KEY_B64
+        sync: false
+      - key: JWT_PUBLIC_KEY_B64
+        sync: false
+      - key: OAUTH_REDIRECT_URIS
+        value: lifesync://oauth/callback

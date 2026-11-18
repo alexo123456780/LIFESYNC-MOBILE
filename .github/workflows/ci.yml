@@ -1,0 +1,83 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [develop, prod]
+  push:
+    branches: [develop, prod]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # El script `prepare` (husky) no aplica en CI.
+  HUSKY: 0
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test -- --coverage
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: lifesync_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d lifesync_test"
+          --health-interval 5s
+          --health-retries 10
+    env:
+      # Base desechable que vive solo durante este job.
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/lifesync_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run migrate:deploy -w apps/api
+      - run: npm run test:e2e -w apps/api
+
+  security:
+    uses: ./.github/workflows/security.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f apps/api/Dockerfile .
+
+  deploy:
+    needs: [quality, e2e, security, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invocar el deploy hook de Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"

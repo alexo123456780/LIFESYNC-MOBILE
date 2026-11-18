@@ -1,0 +1,47 @@
+// Modelos de identidad (Sprint 1). Los modelos clínicos llegan en el Sprint 2.
+// Códigos de autorización y refresh tokens se guardan solo como hash.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String              @id @default(uuid())
+  email         String              @unique
+  passwordHash  String
+  createdAt     DateTime            @default(now())
+  refreshTokens RefreshToken[]
+  authCodes     AuthorizationCode[]
+}
+
+model AuthorizationCode {
+  id            String    @id @default(uuid())
+  userId        String
+  codeHash      String    @unique
+  codeChallenge String // S256
+  redirectUri   String
+  expiresAt     DateTime // 60 s
+  usedAt        DateTime?
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  familyId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

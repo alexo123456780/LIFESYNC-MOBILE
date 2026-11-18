@@ -1,1 +1,22 @@
 /docs/workflow
+
+# Dependencias y artefactos de build
+node_modules/
+dist/
+build/
+coverage/
+.expo/
+*.tsbuildinfo
+
+# Cliente de Prisma generado (se crea con `prisma generate` en postinstall)
+/apps/api/src/generated/
+
+# Secretos y entornos locales (solo se versiona .env.example)
+.env
+.env.*
+!.env.example
+
+# Logs y archivos del sistema
+*.log
+npm-debug.log*
+.DS_Store
