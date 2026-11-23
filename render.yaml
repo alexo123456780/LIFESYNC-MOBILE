@@ -9,7 +9,7 @@ services:
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
     healthCheckPath: /api/v1/healthz
-    autoDeployTrigger: off
+    autoDeployTrigger: 'off'
     envVars:
       - key: NODE_ENV
         value: production
