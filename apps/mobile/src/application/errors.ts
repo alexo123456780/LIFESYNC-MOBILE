@@ -20,6 +20,7 @@ export class NetworkError extends Error {
 /** Puerto mínimo que los casos de uso necesitan del cliente HTTP. */
 export interface RequestOptions {
   headers?: Record<string, string>;
+  skipAuth?: boolean;
 }
 
 export interface ApiPort {
