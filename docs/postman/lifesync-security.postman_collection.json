@@ -1,0 +1,136 @@
+{
+  "info": {
+    "name": "LifeSync API — Seguridad, Inyecciones e IDOR (Estación 1)",
+    "description": "Colección de pruebas de seguridad contra SQLi, NoSQLi, payloads corruptos, JWT inválidos y ataques IDOR entre Usuario A y Usuario B.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "tokenUserA", "value": "" },
+    { "key": "tokenUserB", "value": "" },
+    { "key": "userAAllergyId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Salud — GET /healthz (200)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/healthz" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Responde 200 OK', () => pm.response.to.have.status(200));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Auth — Sin token en /users/me (401)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/users/me" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Rechaza sin token con 401', () => pm.response.to.have.status(401));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Auth — Token con alg:none rechazado (401)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{algNoneToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/users/me"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const h = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'none', typ: 'JWT' }))).replace(/=+$/, '');",
+              "const p = CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(JSON.stringify({ sub: 'attacker' }))).replace(/=+$/, '');",
+              "pm.variables.set('algNoneToken', h + '.' + p + '.');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Rechaza alg:none con 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Inyección SQL — POST /auth/register con payload corrupto (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"' OR 1=1 --\", \"password\": \"ContrasenaSegura123!\", \"role\": \"admin\"}"
+        },
+        "url": "{{baseUrl}}/auth/register"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Rechaza SQLi y campos extra con 400', () => pm.response.to.have.status(400));",
+              "const json = pm.response.json();",
+              "pm.test('Formato único de error', () => {",
+              "  pm.expect(json).to.have.keys(['statusCode', 'message', 'error']);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Inyección NoSQL — POST /auth/register con objeto $ne (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": {\"$ne\": null}, \"password\": \"ContrasenaSegura123!\"}"
+        },
+        "url": "{{baseUrl}}/auth/register"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Rechaza NoSQLi con 400', () => pm.response.to.have.status(400));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. IDOR — Usuario B intenta borrar alergia del Usuario A (404)",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{tokenUserB}}" }],
+        "url": "{{baseUrl}}/health-records/allergies/{{userAAllergyId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Anti-IDOR responde 404 sin revelar existencia', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,11 +4,11 @@ import {
   Controller,
   HttpCode,
   Post,
-  Req,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { type AuthenticatedRequest, JwtAuthGuard } from './jwt-auth.guard.js';
+import { CurrentUser } from './current-user.decorator.js';
+import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { RefreshTokenService } from './oauth/refresh-token.service.js';
 import { RegisterDto } from './register/register.dto.js';
 import { type RegisteredUser, RegisterService } from './register/register.service.js';
@@ -34,11 +34,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async logout(
     @Body() body: Record<string, unknown>,
-    @Req() request: AuthenticatedRequest,
+    @CurrentUser() userId: string,
   ): Promise<void> {
     if (typeof body.refresh_token !== 'string' || body.refresh_token === '') {
       throw new BadRequestException('refresh_token es obligatorio');
     }
-    await this.refreshTokens.revoke(request.user.id, body.refresh_token);
+    await this.refreshTokens.revoke(userId, body.refresh_token);
   }
 }
