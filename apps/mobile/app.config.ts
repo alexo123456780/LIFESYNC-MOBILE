@@ -11,6 +11,12 @@ const config: ExpoConfig = {
   android: { package: 'com.lifesync.mobile' },
   ios: { bundleIdentifier: 'com.lifesync.mobile' },
   plugins: ['expo-router'],
+  owner: 'joselomalles-team',
+  extra: {
+    eas: {
+      projectId: 'faa0e676-1b33-4d1c-9795-422397f0be1f',
+    },
+  },
 };
 
 export default config;
