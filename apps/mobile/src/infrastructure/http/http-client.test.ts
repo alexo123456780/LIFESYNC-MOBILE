@@ -1,7 +1,22 @@
+import type { TokenStorage } from '../../application/token-storage';
+import type { SessionTokens } from '../../domain/session';
 import { HttpClient, HttpError, NetworkError } from './http-client';
 
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+function createMemoryStorage(initial: SessionTokens | null = null): TokenStorage {
+  let current = initial;
+  return {
+    save: jest.fn(async (tokens: SessionTokens) => {
+      current = tokens;
+    }),
+    load: jest.fn(async () => current),
+    clear: jest.fn(async () => {
+      current = null;
+    }),
+  };
+}
 
 describe('HttpClient', () => {
   const fetchMock = jest.fn();
@@ -80,5 +95,108 @@ describe('HttpClient', () => {
 
     expect(error).toBeInstanceOf(NetworkError);
     expect((error as NetworkError).cause).toBe(cause);
+  });
+
+  describe('interceptores de sesión (LM-64 y LM-65)', () => {
+    it('inyecta Authorization: Bearer <JWT> leído de SecureStore cuando hay sesión', async () => {
+      const storage = createMemoryStorage({
+        accessToken: 'jwt-activo',
+        refreshToken: 'ref-1',
+      });
+      const authed = new HttpClient('https://api.test/api/v1', { tokenStorage: storage });
+      fetchMock.mockResolvedValue(jsonResponse(200, { ok: true }));
+
+      await authed.get('/users/me');
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.test/api/v1/users/me',
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer jwt-activo' },
+        }),
+      );
+    });
+
+    it('sin sesión no agrega el header Authorization', async () => {
+      const storage = createMemoryStorage(null);
+      const authed = new HttpClient('https://api.test/api/v1', { tokenStorage: storage });
+      fetchMock.mockResolvedValue(jsonResponse(200, { status: 'ok' }));
+
+      await authed.get('/healthz');
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://api.test/api/v1/healthz',
+        expect.objectContaining({ headers: undefined }),
+      );
+    });
+
+    it('con 3 peticiones simultáneas que reciben 401 hace un solo refresh y reintenta las 3 con el token nuevo', async () => {
+      const storage = createMemoryStorage({
+        accessToken: 'jwt-vencido',
+        refreshToken: 'ref-viejo',
+      });
+      const onAuthFailure = jest.fn();
+      const authed = new HttpClient('https://api.test/api/v1', {
+        tokenStorage: storage,
+        onAuthFailure,
+      });
+
+      let refreshCalls = 0;
+      fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/oauth/token')) {
+          refreshCalls += 1;
+          return jsonResponse(200, {
+            access_token: 'jwt-nuevo',
+            refresh_token: 'ref-nuevo',
+          });
+        }
+        const authHeader = (init?.headers as Record<string, string> | undefined)?.Authorization;
+        if (authHeader === 'Bearer jwt-vencido') {
+          return jsonResponse(401, { message: 'Token expirado' });
+        }
+        if (authHeader === 'Bearer jwt-nuevo') {
+          return jsonResponse(200, { path: url });
+        }
+        return jsonResponse(401, {});
+      });
+
+      const results = await Promise.all([
+        authed.get<{ path: string }>('/health-records/allergies'),
+        authed.get<{ path: string }>('/health-records/medications'),
+        authed.get<{ path: string }>('/health-records/contacts'),
+      ]);
+
+      expect(refreshCalls).toBe(1);
+      expect(storage.save).toHaveBeenCalledWith({
+        accessToken: 'jwt-nuevo',
+        refreshToken: 'ref-nuevo',
+      });
+      expect(onAuthFailure).not.toHaveBeenCalled();
+      expect(results).toEqual([
+        { path: 'https://api.test/api/v1/health-records/allergies' },
+        { path: 'https://api.test/api/v1/health-records/medications' },
+        { path: 'https://api.test/api/v1/health-records/contacts' },
+      ]);
+    });
+
+    it('si el refresh responde 401 borra la sesión y dispara onAuthFailure sin exponer tokens', async () => {
+      const storage = createMemoryStorage({
+        accessToken: 'jwt-secreto-vencido',
+        refreshToken: 'ref-revocado',
+      });
+      const onAuthFailure = jest.fn();
+      const authed = new HttpClient('https://api.test/api/v1', {
+        tokenStorage: storage,
+        onAuthFailure,
+      });
+
+      fetchMock.mockImplementation(async () => jsonResponse(401, { message: 'Unauthorized' }));
+
+      const err = await authed.get('/users/me').catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(HttpError);
+      expect((err as Error).message).not.toContain('jwt-secreto-vencido');
+      expect(storage.clear).toHaveBeenCalledTimes(1);
+      expect(onAuthFailure).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -24,7 +24,9 @@ interface SessionContextValue {
 
 interface SessionProviderProps {
   storage: TokenStorage;
-  api: ApiPort;
+  api: ApiPort & {
+    setAuthFailureHandler?: (handler: (() => Promise<void> | void) | undefined) => void;
+  };
   clearCache: () => Promise<void>;
   children: ReactNode;
 }
@@ -47,6 +49,18 @@ export function SessionProvider({ storage, api, clearCache, children }: SessionP
       active = false;
     };
   }, [storage]);
+
+  // Si falla el refresh token en el interceptor HTTP, se limpia la sesión y la app vuelve a (auth).
+  useEffect(() => {
+    api.setAuthFailureHandler?.(async () => {
+      await clearCache().catch(() => {});
+      setTokens(null);
+      setStatus('unauthenticated');
+    });
+    return () => {
+      api.setAuthFailureHandler?.(undefined);
+    };
+  }, [api, clearCache]);
 
   const signIn = useCallback(
     async (next: SessionTokens) => {

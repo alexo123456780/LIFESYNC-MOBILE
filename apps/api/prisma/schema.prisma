@@ -1,4 +1,4 @@
-// Modelos de identidad (Sprint 1). Los modelos clínicos llegan en el Sprint 2.
+// Modelos de identidad (Sprint 1) y modelos clínicos (Sprint 2).
 // Códigos de autorización y refresh tokens se guardan solo como hash.
 
 generator client {
@@ -12,13 +12,34 @@ datasource db {
   provider = "postgresql"
 }
 
+enum BloodType {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+}
+
+enum Severity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
 model User {
-  id            String              @id @default(uuid())
-  email         String              @unique
-  passwordHash  String
-  createdAt     DateTime            @default(now())
-  refreshTokens RefreshToken[]
-  authCodes     AuthorizationCode[]
+  id                String              @id @default(uuid())
+  email             String              @unique
+  passwordHash      String
+  createdAt         DateTime            @default(now())
+  refreshTokens     RefreshToken[]
+  authCodes         AuthorizationCode[]
+  healthProfile     HealthProfile?
+  allergies         Allergy[]
+  medications       Medication[]
+  emergencyContacts EmergencyContact[]
 }
 
 model AuthorizationCode {
@@ -42,6 +63,49 @@ model RefreshToken {
   expiresAt DateTime
   revokedAt DateTime?
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model HealthProfile {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  bloodType BloodType?
+  notes     String?    @db.VarChar(500)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Allergy {
+  id       String   @id @default(uuid())
+  userId   String
+  name     String   @db.VarChar(100)
+  severity Severity
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Medication {
+  id             String    @id @default(uuid())
+  userId         String
+  name           String    @db.VarChar(100)
+  dose           String    @db.VarChar(50)
+  frequencyHours Int
+  controlled     Boolean   @default(false)
+  startsAt       DateTime
+  endsAt         DateTime?
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EmergencyContact {
+  id           String @id @default(uuid())
+  userId       String
+  name         String @db.VarChar(100)
+  phone        String @db.VarChar(20)
+  relationship String @db.VarChar(50)
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
