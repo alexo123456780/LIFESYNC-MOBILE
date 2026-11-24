@@ -1,8 +1,23 @@
 import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { API_PREFIX } from './api-prefix.js';
 import { UnifiedHttpExceptionFilter } from './http-exception.filter.js';
+
+const DEFAULT_CORS_ORIGINS = [
+  'http://localhost:8081',
+  'http://localhost:19006',
+  'https://lifesync-api-fw89.onrender.com',
+];
+
+function resolveCorsOrigins(): string[] {
+  const raw = process.env.CORS_ORIGINS;
+  if (!raw || raw.trim() === '') return DEFAULT_CORS_ORIGINS;
+  return raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
 
 const OPENAPI_SPEC = {
   openapi: '3.1.0',
@@ -62,6 +77,31 @@ export function configureApp(
   if (nodeEnv === 'production') {
     app.set('trust proxy', 1);
   }
+
+  // Hardening HTTP (LM-118 / LM-130): cabeceras de seguridad, sin X-Powered-By y CORS con lista blanca.
+  app.disable('x-powered-by');
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-DNS-Prefetch-Control', 'off');
+    if (nodeEnv === 'production') {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+  });
+
+  const allowedOrigins = resolveCorsOrigins();
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Origen CORS no permitido'), false);
+      }
+    },
+    credentials: true,
+  });
 
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalPipes(
