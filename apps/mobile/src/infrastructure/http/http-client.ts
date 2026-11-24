@@ -92,7 +92,17 @@ export class HttpClient {
       }
     }
 
-    const payload: unknown = await response.json().catch(() => undefined);
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const contentType = response.headers.get('content-type') ?? '';
+    let payload: unknown;
+    if (contentType.includes('application/json')) {
+      payload = await response.json().catch(() => undefined);
+    } else {
+      payload = await response.text().catch(() => undefined);
+    }
     if (!response.ok) {
       throw new HttpError(response.status, payload);
     }

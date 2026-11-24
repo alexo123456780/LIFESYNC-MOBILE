@@ -7,6 +7,8 @@ import type { Env } from './common/env.validation.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useBodyParser('json', { limit: '3mb' });
+  app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
   configureApp(app);
   app.enableShutdownHooks();
   const port = app.get(ConfigService<Env, true>).get('PORT', { infer: true });

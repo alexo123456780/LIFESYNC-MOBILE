@@ -1,5 +1,7 @@
 import { Redirect, Stack } from 'expo-router';
+import { View } from 'react-native';
 import { resolveGuardRedirect } from '@/domain/session';
+import { OfflineBanner, defaultNetworkMonitor } from '@/presentation/components/OfflineBanner';
 import { SessionLoading } from '@/presentation/session/session-loading';
 import { useSession } from '@/presentation/session/session-context';
 
@@ -9,5 +11,10 @@ export default function AppLayout() {
   if (status === 'loading') return <SessionLoading />;
   const redirect = resolveGuardRedirect(status, '(app)');
   if (redirect) return <Redirect href={redirect} />;
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <OfflineBanner monitor={defaultNetworkMonitor} />
+      <Stack screenOptions={{ headerShown: false }} />
+    </View>
+  );
 }

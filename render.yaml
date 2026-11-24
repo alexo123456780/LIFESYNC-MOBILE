@@ -1,4 +1,10 @@
 # Blueprint de Render. El deploy lo dispara GitHub Actions (deploy hook) con CI en verde en `prod`.
+databases:
+  - name: lifesync-db
+    plan: free
+    databaseName: lifesync
+    user: lifesync
+
 services:
   - type: web
     name: lifesync-api
@@ -13,9 +19,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Sprint 3: reemplazar por `fromDatabase` (lifesync-db) al crear la BD gratuita, que expira a los 30 días.
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: lifesync-db
+          property: connectionString
       - key: JWT_PRIVATE_KEY_B64
         sync: false
       - key: JWT_PUBLIC_KEY_B64
