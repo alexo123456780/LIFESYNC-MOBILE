@@ -40,6 +40,8 @@ model User {
   allergies         Allergy[]
   medications       Medication[]
   emergencyContacts EmergencyContact[]
+  prescriptions     Prescription[]
+  incidentLocations IncidentLocation[]
 }
 
 model AuthorizationCode {
@@ -106,6 +108,29 @@ model EmergencyContact {
   phone        String @db.VarChar(20)
   relationship String @db.VarChar(50)
   user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Prescription {
+  id        String   @id @default(uuid())
+  userId    String
+  mimeType  String
+  sizeBytes Int
+  data      Bytes    // imagen comprimida (<= 2 MB)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model IncidentLocation {
+  id         String   @id @default(uuid())
+  userId     String
+  latitude   Float
+  longitude  Float
+  recordedAt DateTime
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

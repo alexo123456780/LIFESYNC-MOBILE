@@ -21,6 +21,7 @@ interface TextFieldProps extends Pick<
   | 'textContentType'
   | 'editable'
   | 'maxLength'
+  | 'placeholder'
 > {
   label: string;
   /** Mensaje de validación: pone el campo en estado de error. */

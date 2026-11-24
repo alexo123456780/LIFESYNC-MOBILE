@@ -22,6 +22,38 @@ export default function Home() {
           variant="secondary"
           onPress={() => router.push('/contacts')}
         />
+        <Button
+          label="Tarjeta de emergencia"
+          variant="secondary"
+          onPress={() => router.push('/emergency-card')}
+        />
+        <Button
+          label="Exportar historial"
+          variant="secondary"
+          onPress={() => router.push('/export')}
+        />
+      </Card>
+      <Card>
+        <Button
+          label="Escanear receta médica"
+          variant="secondary"
+          onPress={() => router.push('/prescriptions')}
+        />
+        <Button
+          label="Ubicación del incidente"
+          variant="secondary"
+          onPress={() => router.push('/incident-location')}
+        />
+        <Button
+          label="Alertas y recordatorios"
+          variant="secondary"
+          onPress={() => router.push('/alerts')}
+        />
+        <Button
+          label="Detector de caídas"
+          variant="secondary"
+          onPress={() => router.push('/fall-detector')}
+        />
       </Card>
       <Button label="Ajustes" variant="secondary" onPress={() => router.push('/settings')} />
     </ScrollView>
