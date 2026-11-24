@@ -47,8 +47,13 @@ const config = (): ExpoConfig =>
     scheme: 'lifesync',
     orientation: 'portrait',
     userInterfaceStyle: 'light',
+    icon: './assets/icon.png',
     android: {
       package: 'com.lifesync.mobile',
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#1D4ED8',
+      },
       permissions: [
         'android.permission.CAMERA',
         'android.permission.ACCESS_FINE_LOCATION',
