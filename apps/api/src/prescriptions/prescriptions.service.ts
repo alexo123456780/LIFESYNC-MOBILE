@@ -13,7 +13,7 @@ const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 export function detectImageMagicBytes(
   buffer: Buffer,
 ): 'image/jpeg' | 'image/png' | 'image/webp' | null {
-  if (buffer.length < 4) return null;
+  if (!Buffer.isBuffer(buffer) || buffer.byteLength < 4) return null;
 
   // JPEG: FF D8 FF
   if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
@@ -22,7 +22,7 @@ export function detectImageMagicBytes(
 
   // PNG: 89 50 4E 47 0D 0A 1A 0A
   if (
-    buffer.length >= 8 &&
+    buffer.byteLength >= 8 &&
     buffer[0] === 0x89 &&
     buffer[1] === 0x50 &&
     buffer[2] === 0x4e &&
@@ -37,7 +37,7 @@ export function detectImageMagicBytes(
 
   // WEBP: RIFF....WEBP
   if (
-    buffer.length >= 12 &&
+    buffer.byteLength >= 12 &&
     buffer.toString('ascii', 0, 4) === 'RIFF' &&
     buffer.toString('ascii', 8, 12) === 'WEBP'
   ) {
@@ -55,11 +55,12 @@ export class PrescriptionsService {
     userId: string,
     fileBuffer: Buffer,
   ): Promise<{ id: string; mimeType: string; sizeBytes: number }> {
-    if (!fileBuffer || fileBuffer.length === 0) {
+    if (!Buffer.isBuffer(fileBuffer) || fileBuffer.byteLength === 0) {
       throw new BadRequestException('El archivo de receta está vacío');
     }
 
-    if (fileBuffer.length > MAX_SIZE_BYTES) {
+    const sizeBytes = fileBuffer.byteLength;
+    if (sizeBytes > MAX_SIZE_BYTES) {
       throw new HttpException(
         'El archivo supera el límite permitido de 2 MB',
         HttpStatus.PAYLOAD_TOO_LARGE,
@@ -77,7 +78,7 @@ export class PrescriptionsService {
       data: {
         userId,
         mimeType,
-        sizeBytes: fileBuffer.length,
+        sizeBytes,
         data: new Uint8Array(fileBuffer),
       },
       select: {

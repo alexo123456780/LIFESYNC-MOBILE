@@ -24,16 +24,16 @@ export class PrescriptionsController {
   @HttpCode(HttpStatus.CREATED)
   async upload(
     @CurrentUser() userId: string,
-    @Body() body: { data?: string },
+    @Body() body: { data?: unknown },
     @Req() req: Request,
   ) {
     let buffer: Buffer;
     if (body && typeof body.data === 'string') {
       buffer = Buffer.from(body.data, 'base64');
     } else if (Buffer.isBuffer(req.body)) {
-      buffer = req.body;
+      buffer = Buffer.from(req.body.buffer, req.body.byteOffset, req.body.byteLength);
     } else {
-      buffer = Buffer.from('');
+      buffer = Buffer.alloc(0);
     }
 
     return this.service.create(userId, buffer);
